@@ -1,17 +1,19 @@
 package com.tandogan.ecommerce_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"parent", "children", "products"})
+@EqualsAndHashCode(exclude = {"parent", "children", "products"})
 @Entity
 @Table(name = "categories")
 public class Category {
@@ -23,11 +25,21 @@ public class Category {
     @Column(nullable = false, unique = true)
     private String name;
 
-    // --- YENİ ALAN ---
-    // Kategorinin cinsiyetini tutar ('k', 'e', 'h' gibi)
     @Column(length = 1)
     private String gender;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Product> products;
+    // --- YENİ ALANLAR ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_category_id")
+    @JsonIgnore
+    private Category parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Builder.Default // --- DÜZELTME 1 ---
+    private Set<Category> children = new HashSet<>();
+    // --- BİTİŞ ---
+
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY) // --- DÜZELTME 2 ---
+    @Builder.Default // --- DÜZELTME 1 ---
+    private Set<Product> products = new HashSet<>();
 }

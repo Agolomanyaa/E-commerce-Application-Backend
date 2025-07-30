@@ -25,7 +25,7 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDto createCategory(CreateCategoryRequest request) {
         Category category = Category.builder()
                 .name(request.getName())
-                .gender(request.getGender()) // gender bilgisini request'ten al
+                .gender(request.getGender())
                 .build();
         Category savedCategory = categoryRepository.save(category);
         return convertToDto(savedCategory);
@@ -34,7 +34,14 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryDto> getAllCategories() {
         return categoryRepository.findAll().stream()
-                .map(this::convertToDto)
+                .map(this::convertToDto) // Artık bu da parentId'yi taşıyacak
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CategoryDto> getSubCategoriesForForm() {
+        return categoryRepository.findAllByParentIsNotNull().stream()
+                .map(this::convertToDtoWithParent)
                 .collect(Collectors.toList());
     }
 
@@ -48,7 +55,7 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDto updateCategory(Long id, UpdateCategoryRequest request) {
         Category categoryToUpdate = findCategoryById(id);
         categoryToUpdate.setName(request.getName());
-        categoryToUpdate.setGender(request.getGender()); // gender bilgisini güncelle
+        categoryToUpdate.setGender(request.getGender());
         Category updatedCategory = categoryRepository.save(categoryToUpdate);
         return convertToDto(updatedCategory);
     }
@@ -67,11 +74,28 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
     }
 
+    // GÜNCELLENDİ
     private CategoryDto convertToDto(Category category) {
         return CategoryDto.builder()
                 .id(category.getId())
                 .name(category.getName())
-                .gender(category.getGender()) // DTO'ya gender bilgisini ekle
+                .gender(category.getGender())
+                .parentId(category.getParent() != null ? category.getParent().getId() : null)
+                .build();
+    }
+
+    // GÜNCELLENDİ
+    private CategoryDto convertToDtoWithParent(Category category) {
+        String formattedName = category.getName();
+        if (category.getParent() != null) {
+            formattedName = String.format("[%s] - %s", category.getParent().getName(), category.getName());
+        }
+        return CategoryDto.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .gender(category.getGender())
+                .formattedName(formattedName)
+                .parentId(category.getParent() != null ? category.getParent().getId() : null)
                 .build();
     }
 }

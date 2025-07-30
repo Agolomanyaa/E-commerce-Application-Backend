@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-// DİKKAT: Bütün sorun bu satırın güncellenmesiyle çözülecek.
-// Frontend'in beklediği ve SecurityConfig'in koruduğu "/api/v1" ön ekini ekliyoruz.
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 public class ProductController {
@@ -29,7 +27,10 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllProducts(
-            @RequestParam(required = false) Long categoryId,
+            // GÜNCELLEME: @RequestParam'in "name" özelliği eklendi.
+            // Bu, frontend'den "/products?category=123" olarak gelen parametreyi,
+            // kod içindeki "categoryId" değişkenine doğru şekilde bağlar.
+            @RequestParam(required = false, name = "category") Long categoryId,
             @RequestParam(required = false) String gender,
             @RequestParam(required = false) String filterText,
             @RequestParam(defaultValue = "id:asc") String sort,

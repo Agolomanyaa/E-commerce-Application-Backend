@@ -19,9 +19,13 @@ public class ProductDto {
     private BigDecimal price;
     private Double rating;
     private Integer sellCount;
-    private boolean isActive;
-    private Integer totalStock; // Toplam stok
+    private Integer totalStock;
+
+    // --- DEĞİŞİKLİK ---
+    // Alanın adını "active" olarak güncelledik.
+    private boolean active;
+
     private CategoryDto category;
     private List<ProductImageDto> images;
-    private List<ProductVariantDto> variants; // Varyant listesi
+    private List<ProductVariantDto> variants;
 }

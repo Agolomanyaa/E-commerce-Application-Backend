@@ -52,6 +52,7 @@ public class ProductServiceImpl implements ProductService {
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .category(category)
+                .active(true) // Alan adı 'active' olarak güncellendi.
                 .build();
 
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
@@ -94,7 +95,9 @@ public class ProductServiceImpl implements ProductService {
         Specification<Product> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (includeInactive == null || !includeInactive) {
-                predicates.add(criteriaBuilder.isTrue(root.get("isActive")));
+                // --- DEĞİŞİKLİK ---
+                // Sorguyu "active" alanına göre yapacak şekilde güncelledik.
+                predicates.add(criteriaBuilder.isTrue(root.get("active")));
             }
             if (categoryId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("category").get("id"), categoryId));
@@ -127,7 +130,6 @@ public class ProductServiceImpl implements ProductService {
         return new PageImpl<>(dtoList, pageable, productPage.getTotalElements());
     }
 
-
     @Override
     public Optional<ProductDto> getProductById(Long id) {
         return productRepository.findById(id).map(this::convertToDto);
@@ -137,6 +139,7 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductDto> getProductsByCategoryId(Long categoryId) {
         return productRepository.findAllByCategoryId(categoryId)
                 .stream()
+                // Not: Lombok, 'active' alanı için 'isActive()' getter'ı oluşturur. Bu yüzden bu satır doğru çalışır.
                 .filter(Product::isActive)
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -156,6 +159,9 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setCategory(category);
+
+        // --- DEĞİŞİKLİK ---
+        // Aktiflik durumunu frontend'den gelen değere göre güncelliyoruz.
         product.setActive(request.isActive());
 
         product.getImages().clear();
@@ -200,8 +206,11 @@ public class ProductServiceImpl implements ProductService {
                 .price(product.getPrice())
                 .rating(product.getRating())
                 .sellCount(product.getSellCount())
-                .isActive(product.isActive())
                 .totalStock(product.getTotalStock())
+                // --- DEĞİŞİKLİK ---
+                // Alanı "active" olarak güncelledik.
+                // product.isActive() metodu Lombok tarafından 'active' alanı için üretilir.
+                .active(product.isActive())
                 .category(CategoryDto.builder()
                         .id(product.getCategory().getId())
                         .name(product.getCategory().getName())

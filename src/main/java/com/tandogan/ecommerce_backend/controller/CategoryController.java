@@ -15,9 +15,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/categories")
 @RequiredArgsConstructor
-
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
-
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -34,24 +31,24 @@ public class CategoryController {
         return ResponseEntity.ok(categories);
     }
 
+    @GetMapping("/form-list")
+    public ResponseEntity<List<CategoryDto>> getCategoriesForForm() {
+        List<CategoryDto> categories = categoryService.getSubCategoriesForForm();
+        return ResponseEntity.ok(categories);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CategoryDto> getCategoryById(@PathVariable Long id) {
         CategoryDto category = categoryService.getCategoryById(id);
         return ResponseEntity.ok(category);
     }
 
-    // ID'YE GÖRE KATEGORİ GÜNCELLEME
-    // İstek Tipi: PUT
-    // URL: http://localhost:8081/api/v1/categories/1 (örneğin)
     @PutMapping("/{id}")
     public ResponseEntity<CategoryDto> updateCategory(@PathVariable Long id, @RequestBody UpdateCategoryRequest request) {
         CategoryDto updatedCategory = categoryService.updateCategory(id, request);
         return ResponseEntity.ok(updatedCategory);
     }
 
-    // ID'YE GÖRE KATEGORİ SİLME
-    // İstek Tipi: DELETE
-    // URL: http://localhost:8081/api/v1/categories/1 (örneğin)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Boolean>> deleteCategory(@PathVariable Long id) {
         Map<String, Boolean> response = categoryService.deleteCategory(id);

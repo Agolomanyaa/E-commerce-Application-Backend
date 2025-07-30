@@ -26,8 +26,8 @@ public class DataSeeder implements CommandLineRunner {
         if (userRepository.count() == 0) {
             createAdminUser();
         }
-        if (productRepository.count() == 0) {
-            loadInitialProducts();
+        if (categoryRepository.count() == 0) {
+            loadInitialCategoriesAndProducts();
         }
     }
 
@@ -43,33 +43,69 @@ public class DataSeeder implements CommandLineRunner {
         System.out.println(">>> Admin user created successfully!");
     }
 
-    private void loadInitialProducts() {
-        System.out.println(">>> Loading initial products into the database...");
+    private void loadInitialCategoriesAndProducts() {
+        System.out.println(">>> Loading initial categories and products into the database...");
 
-        Category kadin = categoryRepository.save(Category.builder().name("Kadın").gender("k").build());
-        Category erkek = categoryRepository.save(Category.builder().name("Erkek").gender("e").build());
-        Category homeLiving = categoryRepository.save(Category.builder().name("Home & Living").gender("u").build());
+        Category kadinParent = createCategory("Kadın", "k", null);
+        Category erkekParent = createCategory("Erkek", "e", null);
+        createCategory("Home & Living", "u", null);
+
+        createCategory("Erkek Pantalon", "e", erkekParent);
+        Category erkekGomlekCategory = createCategory("Erkek Gömlek", "e", erkekParent);
+        createCategory("Erkek Ceket", "e", erkekParent);
+        createCategory("Erkek T-shirt", "e", erkekParent);
+        createCategory("Erkek Şort", "e", erkekParent);
+
+        createCategory("Kadın Elbise", "k", kadinParent);
+        Category kadinGomlekCategory = createCategory("Kadın Gömlek", "k", kadinParent);
+        Category kadinPantalonCategory = createCategory("Kadın Pantalon", "k", kadinParent);
+        createCategory("Kadın Etek", "k", kadinParent);
+        createCategory("Kadın Ceket", "k", kadinParent);
+
         Product kadinTshirt = Product.builder()
                 .name("Kadın Basic Tişört")
                 .description("Yumuşak pamuklu kumaştan, her mevsime uygun.")
                 .price(new BigDecimal("350.00"))
-                .category(kadin)
+                .category(kadinGomlekCategory)
+                .active(true) // <<< DÜZELTME
                 .build();
         kadinTshirt.getImages().add(ProductImage.builder().url("https://picsum.photos/id/1027/800/800").product(kadinTshirt).build());
-        addVariants(kadinTshirt, List.of("Beyaz", "Siyah"), List.of("S", "M", "L"), 50);
+        addVariants(kadinTshirt, List.of("Beyaz", "Siyah"), List.of("S", "M", "L"), 100);
         productRepository.save(kadinTshirt);
 
         Product erkekGomlek = Product.builder()
                 .name("Erkek Oduncu Gömlek")
                 .description("Kırmızı-siyah ekose desenli, kalın kumaş.")
                 .price(new BigDecimal("750.00"))
-                .category(erkek)
+                .category(erkekGomlekCategory)
+                .active(true) // <<< DÜZELTME
                 .build();
         erkekGomlek.getImages().add(ProductImage.builder().url("https://picsum.photos/id/1084/800/800").product(erkekGomlek).build());
-        addVariants(erkekGomlek, List.of("Kırmızı", "Mavi"), List.of("M", "L", "XL"), 30);
+        addVariants(erkekGomlek, List.of("Kırmızı", "Mavi"), List.of("M", "L", "XL"), 60);
         productRepository.save(erkekGomlek);
 
-        System.out.println(">>> Initial products loaded successfully.");
+        Product kadinSort = Product.builder()
+                .name("Kadın Yüksek Bel Püsküllü Açık Mavi Jean Şort")
+                .description("Kaliteli denim kumaştan üretilmiştir.")
+                .price(new BigDecimal("550.00")) // Fiyatı daha mantıklı bir değere güncelledim.
+                .category(kadinPantalonCategory) // Kategoriyi "Pantalon" olarak düzelttim.
+                .active(true) // <<< DÜZELTME
+                .build();
+        kadinSort.getImages().add(ProductImage.builder().url("https://picsum.photos/id/1011/800/800").product(kadinSort).build());
+        addVariants(kadinSort, List.of("Açık Mavi"), List.of("S", "M", "L", "XL"), 80); // Stok miktarını artırdım.
+        productRepository.save(kadinSort);
+
+
+        System.out.println(">>> Initial data loaded successfully.");
+    }
+
+    private Category createCategory(String name, String gender, Category parent) {
+        Category category = Category.builder()
+                .name(name)
+                .gender(gender)
+                .parent(parent)
+                .build();
+        return categoryRepository.save(category);
     }
 
     private void addVariants(Product product, List<String> colors, List<String> sizes, int initialStock) {

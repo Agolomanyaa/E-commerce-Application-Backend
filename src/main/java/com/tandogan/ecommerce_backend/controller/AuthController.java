@@ -3,6 +3,7 @@ package com.tandogan.ecommerce_backend.controller;
 import com.tandogan.ecommerce_backend.dto.request.LoginRequest;
 import com.tandogan.ecommerce_backend.dto.request.RegisterRequest;
 import com.tandogan.ecommerce_backend.dto.response.LoginResponse;
+import com.tandogan.ecommerce_backend.model.Role; // YENİ IMPORT
 import com.tandogan.ecommerce_backend.model.User;
 import com.tandogan.ecommerce_backend.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays; // YENİ IMPORT
+import java.util.List;   // YENİ IMPORT
 import java.util.Map;
+import java.util.stream.Collectors; // YENİ IMPORT
 
 @RestController
 @RequestMapping("/api/v1")
@@ -33,15 +37,21 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(loginRequest));
     }
 
-    // YENİ EKLENEN ENDPOINT: Token doğrulama için kullanılır.
+    // --- YENİ ENDPOINT ---
+    @GetMapping("/roles")
+    public ResponseEntity<List<String>> getRoles() {
+        List<String> roles = Arrays.stream(Role.values())
+                .map(Enum::name)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(roles);
+    }
+    // --- BİTİŞ ---
+
     @GetMapping("/verify")
     public ResponseEntity<Map<String, Object>> verifyToken() {
-        // Bu metoda ulaşıldığında, JwtAuthFilter zaten token'ı doğrulamış demektir.
-        // Güvenlik bağlamından (security context) kimliği doğrulanmış kullanıcıyı alabiliriz.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
-        // Frontend'in beklediği kullanıcı verisi formatını (token hariç) oluşturuyoruz.
         Map<String, Object> userData = Map.of(
                 "id", user.getId(),
                 "name", user.getName(),

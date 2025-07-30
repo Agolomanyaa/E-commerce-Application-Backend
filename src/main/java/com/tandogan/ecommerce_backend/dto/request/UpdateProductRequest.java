@@ -11,7 +11,10 @@ public class UpdateProductRequest {
     private BigDecimal price;
     private Long categoryId;
     private List<String> imageUrls;
-    // HATA BURADAYDI: İsim 'ProductVariantRequest' olarak düzeltildi.
-    private List<ProductVariantRequest> variants;
-    private boolean isActive;
+
+    // Artık bu satır hata vermeyecek çünkü VariantRequest.java dosyasını oluşturduk.
+    private List<VariantRequest> variants;
+
+    // Alanın adını "isActive" yerine "active" olarak güncelliyoruz.
+    private boolean active;
 }

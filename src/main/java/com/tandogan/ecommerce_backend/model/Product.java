@@ -1,18 +1,18 @@
 package com.tandogan.ecommerce_backend.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "products")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"category", "variants", "images"})
+@EqualsAndHashCode(exclude = {"category", "variants", "images"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,33 +30,32 @@ public class Product {
     @Column(nullable = false)
     private BigDecimal price;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JsonManagedReference("product-images")
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<ProductImage> images = new HashSet<>();
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JsonManagedReference("product-variants")
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<ProductVariant> variants = new HashSet<>();
 
-    @Column(nullable = false, columnDefinition = "int default 0")
+    @Column(name = "sell_count", nullable = false)
     @Builder.Default
     private int sellCount = 0;
 
-    @Column(nullable = false, columnDefinition = "float default 0.0")
+    @Column(name = "rating", nullable = false)
     @Builder.Default
-    private double rating = 0.0; // Düzeltme: float'tan double'a çevrildi.
+    private double rating = 0.0;
 
-    @Column(nullable = false)
+    // --- DEĞİŞİKLİK ---
+    // Alanın adını ve kolon adını "active" olarak güncelledik.
+    @Column(name = "active", nullable = false)
     @Builder.Default
-    private boolean isActive = true;
+    private boolean active = true;
 
-    // YENİ EKLENEN METOT
     public int getTotalStock() {
         if (this.variants == null) {
             return 0;
