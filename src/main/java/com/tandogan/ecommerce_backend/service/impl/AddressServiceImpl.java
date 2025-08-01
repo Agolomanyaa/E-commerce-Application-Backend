@@ -25,24 +25,22 @@ public class AddressServiceImpl implements AddressService {
     @Override
     @Transactional
     public AddressDto createAddress(Long userId, AddressRequest request) {
-        // Adresin ekleneceği kullanıcıyı bul.
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         // DTO'dan gelen bilgilerle yeni bir Address nesnesi oluştur.
         Address address = Address.builder()
                 .user(user)
-                .addressTitle(request.getAddressTitle())
+                .title(request.getTitle()) // DÜZELTME: getAddressTitle -> getTitle
                 .name(request.getName())
                 .surname(request.getSurname())
                 .phone(request.getPhone())
                 .city(request.getCity())
                 .district(request.getDistrict())
                 .neighborhood(request.getNeighborhood())
-                .fullAddress(request.getFullAddress())
+                // KALDIRILDI: .fullAddress(request.getFullAddress())
                 .build();
 
-        // Adresi veritabanına kaydet.
         Address savedAddress = addressRepository.save(address);
 
         return convertToDto(savedAddress);
@@ -50,12 +48,10 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     public List<AddressDto> getAddressesByUserId(Long userId) {
-        // Kullanıcının var olup olmadığını kontrol et.
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
 
-        // Kullanıcıya ait tüm adresleri bul ve DTO listesine çevir.
         List<Address> addresses = addressRepository.findByUserId(userId);
         return addresses.stream()
                 .map(this::convertToDto)
@@ -65,24 +61,21 @@ public class AddressServiceImpl implements AddressService {
     @Override
     @Transactional
     public AddressDto updateAddress(Long userId, Long addressId, AddressRequest request) {
-        // Güncellenecek adresi bul.
         Address addressToUpdate = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + addressId));
 
-        // Güvenlik Kontrolü: Adres, işlemi yapan kullanıcıya mı ait?
         if (!addressToUpdate.getUser().getId().equals(userId)) {
             throw new SecurityException("User does not have permission to update this address.");
         }
 
-        // Adres bilgilerini güncelle.
-        addressToUpdate.setAddressTitle(request.getAddressTitle());
+        addressToUpdate.setTitle(request.getTitle()); // DÜZELTME: setAddressTitle -> setTitle
         addressToUpdate.setName(request.getName());
         addressToUpdate.setSurname(request.getSurname());
         addressToUpdate.setPhone(request.getPhone());
         addressToUpdate.setCity(request.getCity());
         addressToUpdate.setDistrict(request.getDistrict());
         addressToUpdate.setNeighborhood(request.getNeighborhood());
-        addressToUpdate.setFullAddress(request.getFullAddress());
+        // KALDIRILDI: addressToUpdate.setFullAddress(request.getFullAddress());
 
         Address updatedAddress = addressRepository.save(addressToUpdate);
         return convertToDto(updatedAddress);
@@ -91,11 +84,9 @@ public class AddressServiceImpl implements AddressService {
     @Override
     @Transactional
     public void deleteAddress(Long userId, Long addressId) {
-        // Silinecek adresi bul.
         Address addressToDelete = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + addressId));
 
-        // Güvenlik Kontrolü: Adres, işlemi yapan kullanıcıya mı ait?
         if (!addressToDelete.getUser().getId().equals(userId)) {
             throw new SecurityException("User does not have permission to delete this address.");
         }
@@ -103,18 +94,17 @@ public class AddressServiceImpl implements AddressService {
         addressRepository.delete(addressToDelete);
     }
 
-    // Entity'i DTO'ya dönüştüren yardımcı metot.
     private AddressDto convertToDto(Address address) {
         return AddressDto.builder()
                 .id(address.getId())
-                .addressTitle(address.getAddressTitle())
+                .title(address.getTitle()) // DÜZELTME: getAddressTitle -> getTitle
                 .name(address.getName())
                 .surname(address.getSurname())
                 .phone(address.getPhone())
                 .city(address.getCity())
                 .district(address.getDistrict())
                 .neighborhood(address.getNeighborhood())
-                .fullAddress(address.getFullAddress())
+                // KALDIRILDI: .fullAddress(address.getFullAddress())
                 .build();
     }
 }

@@ -1,12 +1,12 @@
 package com.tandogan.ecommerce_backend.service.impl;
 
 import com.tandogan.ecommerce_backend.dto.request.CreateOrderRequest;
+import com.tandogan.ecommerce_backend.dto.request.OrderItemRequest;
 import com.tandogan.ecommerce_backend.dto.response.OrderDto;
 import com.tandogan.ecommerce_backend.dto.response.OrderItemDto;
 import com.tandogan.ecommerce_backend.exception.*;
 import com.tandogan.ecommerce_backend.model.*;
 import com.tandogan.ecommerce_backend.repository.*;
-import com.tandogan.ecommerce_backend.service.CartService;
 import com.tandogan.ecommerce_backend.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final ProductVariantRepository productVariantRepository;
-    private final CartService cartService;
+    private final ProductRepository productRepository; // Product bilgilerine erişim için eklendi
 
     @Override
     @Transactional
@@ -33,9 +33,9 @@ public class OrderServiceImpl implements OrderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
-        List<CartItem> cartItems = cartService.getCartItemsByUserId(userId);
-        if (cartItems.isEmpty()) {
-            throw new CartIsEmptyException("Cannot create order with an empty cart.");
+        // DÜZELTME: Gelen istekteki ürün listesini kontrol et
+        if (request.getProducts() == null || request.getProducts().isEmpty()) {
+            throw new CartIsEmptyException("Cannot create order with an empty product list.");
         }
 
         Address address = addressRepository.findById(request.getAddressId())
@@ -52,30 +52,36 @@ public class OrderServiceImpl implements OrderService {
         newOrder.setStatus(Order.OrderStatus.PENDING);
 
         BigDecimal totalPrice = BigDecimal.ZERO;
-        for (CartItem cartItem : cartItems) {
-            ProductVariant variant = cartItem.getVariant();
 
-            if (variant.getStock() < cartItem.getQuantity()) {
-                throw new OutOfStockException("Not enough stock for product: " + variant.getProduct().getName() + ". Available: " + variant.getStock() + ", Requested: " + cartItem.getQuantity());
+        // DÜZELTME: Veritabanı sepeti yerine, request'ten gelen ürünler üzerinde döngü kur
+        for (OrderItemRequest itemRequest : request.getProducts()) {
+            ProductVariant variant = productVariantRepository.findById(itemRequest.getVariantId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product Variant not found with id: " + itemRequest.getVariantId()));
+
+            if (variant.getStock() < itemRequest.getCount()) {
+                String productName = variant.getProduct() != null ? variant.getProduct().getName() : "N/A";
+                throw new OutOfStockException("Not enough stock for product: " + productName + ". Available: " + variant.getStock() + ", Requested: " + itemRequest.getCount());
             }
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(newOrder);
             orderItem.setVariant(variant);
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setPrice(variant.getProduct().getPrice());
+            orderItem.setQuantity(itemRequest.getCount());
+            orderItem.setPrice(variant.getProduct().getPrice()); // Varyantın bağlı olduğu ürünün fiyatını al
             newOrder.getOrderItems().add(orderItem);
 
-            variant.setStock(variant.getStock() - cartItem.getQuantity());
+            // Stoktan düş
+            variant.setStock(variant.getStock() - itemRequest.getCount());
             productVariantRepository.save(variant);
 
-            totalPrice = totalPrice.add(variant.getProduct().getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            // Toplam fiyatı hesapla
+            totalPrice = totalPrice.add(variant.getProduct().getPrice().multiply(BigDecimal.valueOf(itemRequest.getCount())));
         }
 
         newOrder.setTotalPrice(totalPrice);
         Order savedOrder = orderRepository.save(newOrder);
 
-        cartService.clearCart(userId);
+        // cartService.clearCart(userId) çağrısı kaldırıldı.
 
         return convertToDto(savedOrder);
     }
@@ -88,7 +94,6 @@ public class OrderServiceImpl implements OrderService {
                             .productId(product.getId())
                             .productName(product.getName())
                             .variantInfo(item.getVariant().getColor() + " / " + item.getVariant().getSize())
-                            // DÜZELTME: Set'ten güvenli bir şekilde ilk resmi alır.
                             .productImageUrl(product.getImages().stream().findFirst().map(ProductImage::getUrl).orElse("no-image.jpg"))
                             .quantity(item.getQuantity())
                             .price(item.getPrice())
@@ -120,7 +125,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String formatAddress(Address address) {
-        return address.getAddressTitle() + " - " + address.getFullAddress() + ", " +
-                address.getNeighborhood() + ", " + address.getDistrict() + ", " + address.getCity();
+        return String.format("%s: %s, %s/%s",
+                address.getTitle(),
+                address.getNeighborhood(),
+                address.getDistrict(),
+                address.getCity());
     }
 }

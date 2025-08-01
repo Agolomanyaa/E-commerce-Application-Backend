@@ -1,21 +1,23 @@
 package com.tandogan.ecommerce_backend.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"password", "addresses"})
+@EqualsAndHashCode(exclude = {"password", "addresses"})
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
@@ -40,13 +42,17 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Address> addresses = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<CreditCard> creditCards = new HashSet<>();
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // YETKİ SAĞLAMA GÜNCELLENDİ:
-        // Artık 'ROLE_' ön ekini kullanmıyoruz. Doğrudan rolün adını (örn: "ADMIN")
-        // yetki olarak veriyoruz. Bu, SecurityConfig'deki .hasAuthority("ADMIN")
-        // kuralıyla birebir eşleşir ve olası karışıklıkları önler.
         return List.of(new SimpleGrantedAuthority(role.name()));
     }
 

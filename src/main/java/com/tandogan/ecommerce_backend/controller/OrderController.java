@@ -13,11 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/orders")
+@RequestMapping("/api/v1/order") // DÜZELTME: "/api/v1/orders" -> "/api/v1/order"
 @RequiredArgsConstructor
-
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
-
 public class OrderController {
 
     private final OrderService orderService;

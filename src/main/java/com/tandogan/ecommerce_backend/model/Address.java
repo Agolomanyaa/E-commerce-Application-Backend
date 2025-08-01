@@ -2,49 +2,46 @@ package com.tandogan.ecommerce_backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Data
+@Entity
+@Table(name = "addresses")
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "addresses")
+@ToString(exclude = "user")
+@EqualsAndHashCode(exclude = "user")
 public class Address {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Bu adresin hangi kullanıcıya ait olduğu.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnore // Adresi gösterirken tekrar kullanıcıyı göstermeyelim, döngü oluşmasın.
+    @JsonIgnore
     private User user;
 
-    @Column(name = "address_title", nullable = false)
-    private String addressTitle; // "Ev Adresim", "İş Adresim" gibi
+    @Column(nullable = false)
+    private String title; // "Ev", "İş" gibi. Frontend ile uyumlu.
 
     @Column(nullable = false)
-    private String name; // Alıcı adı (Tandoğan)
+    private String name; // Alıcı adı
 
     @Column(nullable = false)
-    private String surname; // Alıcı soyadı (Goncu)
+    private String surname; // Alıcı soyadı
 
     @Column(nullable = false)
-    private String phone; // Telefon
+    private String phone;
 
     @Column(nullable = false)
-    private String city; // Şehir
+    private String city;
 
     @Column(nullable = false)
-    private String district; // İlçe
+    private String district;
 
-    @Column(nullable = false)
-    private String neighborhood; // Mahalle
-
-    @Column(name = "full_address", nullable = false, columnDefinition = "TEXT")
-    private String fullAddress; // Açık adres
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String neighborhood; // Mahalle ve açık adres detayı
 }
