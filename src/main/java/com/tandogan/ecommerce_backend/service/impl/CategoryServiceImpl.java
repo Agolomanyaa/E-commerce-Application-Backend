@@ -27,14 +27,20 @@ public class CategoryServiceImpl implements CategoryService {
                 .name(request.getName())
                 .gender(request.getGender())
                 .build();
+        if (request.getParentId() != null) {
+            Category parent = findCategoryById(request.getParentId());
+            category.setParent(parent);
+        }
         Category savedCategory = categoryRepository.save(category);
-        return convertToDto(savedCategory);
+        return convertToDtoWithParent(savedCategory);
     }
 
     @Override
     public List<CategoryDto> getAllCategories() {
+        // --- ZORUNLU DEĞİŞİKLİK BURADA ---
+        // Artık bu metod da `convertToDtoWithParent` kullanarak `formattedName` alanını ekliyor.
         return categoryRepository.findAll().stream()
-                .map(this::convertToDto) // Artık bu da parentId'yi taşıyacak
+                .map(this::convertToDtoWithParent)
                 .collect(Collectors.toList());
     }
 
@@ -48,7 +54,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDto getCategoryById(Long id) {
         Category category = findCategoryById(id);
-        return convertToDto(category);
+        return convertToDtoWithParent(category);
     }
 
     @Override
@@ -56,8 +62,19 @@ public class CategoryServiceImpl implements CategoryService {
         Category categoryToUpdate = findCategoryById(id);
         categoryToUpdate.setName(request.getName());
         categoryToUpdate.setGender(request.getGender());
+
+        if (request.getParentId() != null) {
+            if (request.getParentId().equals(id)) {
+                throw new IllegalArgumentException("Bir kategori kendisine ebeveyn olarak atanamaz.");
+            }
+            Category parent = findCategoryById(request.getParentId());
+            categoryToUpdate.setParent(parent);
+        } else {
+            categoryToUpdate.setParent(null);
+        }
+
         Category updatedCategory = categoryRepository.save(categoryToUpdate);
-        return convertToDto(updatedCategory);
+        return convertToDtoWithParent(updatedCategory);
     }
 
     @Override
@@ -74,7 +91,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
     }
 
-    // GÜNCELLENDİ
+    // ARTIK BU METODA İHTİYAÇ KALMADI, AMA SİLMEDEN BIRAKABİLİRİZ.
     private CategoryDto convertToDto(Category category) {
         return CategoryDto.builder()
                 .id(category.getId())
@@ -84,11 +101,10 @@ public class CategoryServiceImpl implements CategoryService {
                 .build();
     }
 
-    // GÜNCELLENDİ
     private CategoryDto convertToDtoWithParent(Category category) {
         String formattedName = category.getName();
         if (category.getParent() != null) {
-            formattedName = String.format("[%s] - %s", category.getParent().getName(), category.getName());
+            formattedName = String.format("%s -> %s", category.getParent().getName(), category.getName());
         }
         return CategoryDto.builder()
                 .id(category.getId())

@@ -2,6 +2,7 @@ package com.tandogan.ecommerce_backend.service.impl;
 
 import com.tandogan.ecommerce_backend.dto.request.CreateProductRequest;
 import com.tandogan.ecommerce_backend.dto.request.UpdateProductRequest;
+import com.tandogan.ecommerce_backend.dto.request.VariantRequest;
 import com.tandogan.ecommerce_backend.dto.response.CategoryDto;
 import com.tandogan.ecommerce_backend.dto.response.ProductDto;
 import com.tandogan.ecommerce_backend.dto.response.ProductImageDto;
@@ -26,10 +27,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -52,7 +50,7 @@ public class ProductServiceImpl implements ProductService {
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .category(category)
-                .active(true) // Alan adı 'active' olarak güncellendi.
+                .active(true)
                 .build();
 
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
@@ -95,13 +93,25 @@ public class ProductServiceImpl implements ProductService {
         Specification<Product> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (includeInactive == null || !includeInactive) {
-                // --- DEĞİŞİKLİK ---
-                // Sorguyu "active" alanına göre yapacak şekilde güncelledik.
                 predicates.add(criteriaBuilder.isTrue(root.get("active")));
             }
+
+            // --- AKILLI KATEGORİ FİLTRELEME GÜNCELLEMESİ ---
             if (categoryId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("category").get("id"), categoryId));
+                // Ana kategori ve tüm alt kategorilerinin ID'lerini al.
+                Set<Long> categoryIdsToFilter = categoryRepository.findSelfAndDescendantIds(categoryId);
+
+                // Eğer ID listesi boş değilse, bu listedeki ID'lere sahip tüm ürünleri getir.
+                if (categoryIdsToFilter != null && !categoryIdsToFilter.isEmpty()) {
+                    predicates.add(root.get("category").get("id").in(categoryIdsToFilter));
+                } else {
+                    // Eğer bir kategori ID'si gelip de ona ait alt kategori bulunamazsa
+                    // (veya kategori yoksa), hiçbir ürün getirme.
+                    predicates.add(criteriaBuilder.equal(root.get("category").get("id"), -1L));
+                }
             }
+            // --- GÜNCELLEME SONU ---
+
             if (gender != null && !gender.trim().isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("category").get("gender"), gender));
             }
@@ -115,7 +125,7 @@ public class ProductServiceImpl implements ProductService {
         List<Long> productIds = productPage.getContent().stream().map(Product::getId).toList();
 
         if (productIds.isEmpty()) {
-            return new PageImpl<>(new ArrayList<>(), pageable, 0);
+            return new PageImpl<>(new ArrayList<>(), pageable, productPage.getTotalElements());
         }
 
         List<Product> productsWithDetails = productRepository.findWithDetailsByIds(productIds);
@@ -139,8 +149,7 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductDto> getProductsByCategoryId(Long categoryId) {
         return productRepository.findAllByCategoryId(categoryId)
                 .stream()
-                // Not: Lombok, 'active' alanı için 'isActive()' getter'ı oluşturur. Bu yüzden bu satır doğru çalışır.
-                .filter(Product::isActive)
+                // .filter(Product::isActive) // Bu metod zaten service'de filtreleniyor.
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -159,9 +168,6 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setCategory(category);
-
-        // --- DEĞİŞİKLİK ---
-        // Aktiflik durumunu frontend'den gelen değere göre güncelliyoruz.
         product.setActive(request.isActive());
 
         product.getImages().clear();
@@ -169,22 +175,38 @@ public class ProductServiceImpl implements ProductService {
             request.getImageUrls().forEach(url -> product.getImages().add(ProductImage.builder().url(url).product(product).build()));
         }
 
-        product.getVariants().clear();
-        if (request.getVariants() != null && !request.getVariants().isEmpty()) {
-            request.getVariants().forEach(variantRequest -> {
-                ProductVariant variant = ProductVariant.builder()
-                        .color(variantRequest.getColor())
-                        .size(variantRequest.getSize())
-                        .stock(variantRequest.getStock())
-                        .product(product)
-                        .build();
-                product.getVariants().add(variant);
-            });
+        Map<String, ProductVariant> existingVariantsMap = product.getVariants().stream()
+                .collect(Collectors.toMap(v -> v.getColor() + "||" + v.getSize(), Function.identity()));
+
+        Set<ProductVariant> updatedOrNewVariants = new HashSet<>();
+
+        if (request.getVariants() != null) {
+            for (VariantRequest variantRequest : request.getVariants()) {
+                String key = variantRequest.getColor() + "||" + variantRequest.getSize();
+                ProductVariant existingVariant = existingVariantsMap.get(key);
+
+                if (existingVariant != null) {
+                    existingVariant.setStock(variantRequest.getStock());
+                    updatedOrNewVariants.add(existingVariant);
+                    existingVariantsMap.remove(key);
+                } else {
+                    ProductVariant newVariant = ProductVariant.builder()
+                            .color(variantRequest.getColor())
+                            .size(variantRequest.getSize())
+                            .stock(variantRequest.getStock())
+                            .product(product)
+                            .build();
+                    updatedOrNewVariants.add(newVariant);
+                }
+            }
         }
+        product.getVariants().clear();
+        product.getVariants().addAll(updatedOrNewVariants);
 
         Product savedProduct = productRepository.save(product);
         return convertToDto(savedProduct);
     }
+
 
     @Override
     @Transactional
@@ -192,6 +214,7 @@ public class ProductServiceImpl implements ProductService {
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found for this id :: " + productId));
+
         productRepository.delete(product);
     }
 
@@ -207,9 +230,6 @@ public class ProductServiceImpl implements ProductService {
                 .rating(product.getRating())
                 .sellCount(product.getSellCount())
                 .totalStock(product.getTotalStock())
-                // --- DEĞİŞİKLİK ---
-                // Alanı "active" olarak güncelledik.
-                // product.isActive() metodu Lombok tarafından 'active' alanı için üretilir.
                 .active(product.isActive())
                 .category(CategoryDto.builder()
                         .id(product.getCategory().getId())

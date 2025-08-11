@@ -6,4 +6,5 @@ import lombok.Data;
 public class UpdateCategoryRequest {
     private String name;
     private String gender;
+    private Long parentId;
 }
