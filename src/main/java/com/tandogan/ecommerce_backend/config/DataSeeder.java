@@ -81,7 +81,6 @@ public class DataSeeder implements CommandLineRunner {
                         "https://cdn.myikas.com/images/41c3d708-7e1f-44e8-8f55-8a3be5a9be11/a8ba1fb5-5ca8-4378-8c9f-d937dd6c5756/3840/c25008-2.webp",
                         "https://cdn.myikas.com/images/41c3d708-7e1f-44e8-8f55-8a3be5a9be11/15aed17d-c71c-4eef-9be4-5997fabb6339/3840/mar-c25008-1.webp",
                         "https://cdn.myikas.com/images/41c3d708-7e1f-44e8-8f55-8a3be5a9be11/d26c62ca-e83c-44cb-ad96-7d7da1008bb1/3840/c25008-1.webp"
-
                 ), List.of("Beyaz", "Siyah"), List.of("S", "M", "L"), 100);
 
         createProduct("Erkek Jean Gömlek", "Kırmızı-siyah ekose desenli, kalın kumaş.", new BigDecimal("750.00"), erkekGomlekCategory,
@@ -112,10 +111,16 @@ public class DataSeeder implements CommandLineRunner {
                 ), List.of("Yeşil"), List.of("Çift Kişilik"), 50);
 
         createProduct("Trioline Kahve Çift Kişilik Nevresim", "Ranforce Kumaş, %100 Pamuk, Kahve Tonları", new BigDecimal("1300.50"), nevresimCategory,
-                List.of("https://i.imgur.com/exampleBrownSheet.jpeg"), List.of("Kahve"), List.of("Çift Kişilik"), 45);
+                List.of(
+                        "https://cdn.myikas.com/images/41c3d708-7e1f-44e8-8f55-8a3be5a9be11/dbf625eb-448b-46a2-abf6-4f380b0de00e/image_3840.webp",
+                        "https://cdn.myikas.com/images/41c3d708-7e1f-44e8-8f55-8a3be5a9be11/896e0a7d-e84c-4809-952d-d07ea2f4c186/image_3840.webp"
+                ), List.of("Kahve"), List.of("Çift Kişilik"), 45);
 
         createProduct("Pike Yatak Örtüsü Antrasit", "Yumuşak dokulu pamuk pike", new BigDecimal("980.00"), yatakOrtusuCategory,
-                List.of("https://i.imgur.com/exampleBedspread.jpeg"), List.of("Antrasit"), List.of("Tek Kişilik", "Çift Kişilik"), 70);
+                List.of(
+                        "https://cdn.myikas.com/images/41c3d708-7e1f-44e8-8f55-8a3be5a9be11/9dee1753-8f17-4037-a16b-60ce3392a639/image_3840.webp",
+                        "https://cdn.myikas.com/images/41c3d708-7e1f-44e8-8f55-8a3be5a9be11/65ee3abd-2e9d-4850-a7d8-0f72df9a2a9c/image_3840.webp"
+                ), List.of("Antrasit"), List.of("Tek Kişilik", "Çift Kişilik"), 70);
 
         System.out.println(">>> Initial data loaded successfully.");
     }
@@ -138,7 +143,6 @@ public class DataSeeder implements CommandLineRunner {
                 .active(true)
                 .build();
 
-        // Birden fazla resim URL'sini işle
         if (imageUrls != null && !imageUrls.isEmpty()) {
             imageUrls.forEach(url -> product.getImages().add(ProductImage.builder().url(url).product(product).build()));
         }
@@ -161,4 +165,3 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 }
-// Son kontrol
